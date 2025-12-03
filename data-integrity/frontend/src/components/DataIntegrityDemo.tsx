@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/context/WalletContext';
 import { LockingScript, Transaction, Utils } from '@bsv/sdk';
 import type { ApiResponse, Award } from '@/types';
-import { AlertCircle, CheckCircle, Shield, ShieldAlert, Link2 } from 'lucide-react';
+import { Shield, ShieldAlert, Link2, Link2Off } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -110,6 +110,9 @@ export function DataIntegrityDemo() {
           satoshis: 0,
           basket: 'integrity'
         })),
+        options: {
+          randomizeOutputs: false
+        }
       });
 
       // Extract txid from the result
@@ -220,6 +223,7 @@ export function DataIntegrityDemo() {
     const isRecord3 = index === 2;
     const isRecord5 = index === 4;
     const showIssue = (isRecord3 || isRecord5) && showValidationIssues;
+    const showLink = index < 5;
 
     return (
       <div
@@ -251,7 +255,7 @@ export function DataIntegrityDemo() {
           {showIssue && (
             <Badge variant="destructive" className="text-xs">Tampered</Badge>
           )}
-          {txids.length > 0 && (
+          {showLink && txids.length > 0 && (
             <a
               href={`https://whatsonchain.com/tx/${txids[0]}`}
               target="_blank"
@@ -259,7 +263,7 @@ export function DataIntegrityDemo() {
               className="text-blue-600 hover:text-blue-800 transition-colors"
               title="View on WhatsOnChain"
             >
-              <Link2 className="w-4 h-4" />
+              {showIssue ? <Link2Off className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
             </a>
           )}
         </div>
@@ -377,50 +381,6 @@ export function DataIntegrityDemo() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {validationResults.record3 !== null && (
-                <div className="mb-4 space-y-2">
-                    <div className={`p-4 rounded-lg border flex items-start gap-2 ${
-                      validationResults.record3
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-red-50 border-red-200'
-                    }`}>
-                      {validationResults.record3 ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                      )}
-                      <div>
-                        <p className="font-medium">Record 3 (Award ID: W31P4Q14C0034)</p>
-                        <p className="text-sm">
-                          {validationResults.record3
-                            ? 'Data integrity verified ✓'
-                            : 'TAMPERING DETECTED! Award amount has been modified!'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={`p-4 rounded-lg border flex items-start gap-2 ${
-                      validationResults.record5
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-red-50 border-red-200'
-                    }`}>
-                      {validationResults.record5 ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                      )}
-                      <div>
-                        <p className="font-medium">Record 5 (Award ID: FA910115C0500)</p>
-                        <p className="text-sm">
-                          {validationResults.record5
-                            ? 'Data integrity verified ✓'
-                            : 'TAMPERING DETECTED! Recipient name has been modified!'}
-                        </p>
-                      </div>
-                    </div>
-                </div>
-              )}
-
               <div className="border rounded-lg overflow-hidden bg-white">
                 {/* Spreadsheet Header */}
                 <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold bg-gray-100 border-b-2 border-gray-300">

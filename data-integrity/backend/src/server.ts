@@ -41,8 +41,7 @@ app.get('/api/data/altered', (req, res) => {
 app.get('/api/data/records', (req, res) => {
   try {
     const data = JSON.parse(fs.readFileSync(originalDataPath, 'utf8'));
-    // Return records at index 2 and 4 (the ones we're tracking)
-    const records = data.results.slice(0,4);
+    const records = data.results.slice(0, 5);
     res.json(records);
   } catch (error) {
     console.error('Error reading records:', error);
