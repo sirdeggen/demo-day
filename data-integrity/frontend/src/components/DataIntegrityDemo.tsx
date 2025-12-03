@@ -51,7 +51,7 @@ export function DataIntegrityDemo() {
     setIsAnimating(true);
 
     // Fade out
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Fetch altered data
     try {
@@ -65,7 +65,7 @@ export function DataIntegrityDemo() {
     }
 
     // Fade in
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setIsAnimating(false);
   };
 
