@@ -15,6 +15,7 @@ export function DataIntegrityDemo() {
   const { wallet, isInitialized } = useWallet();
   const [withoutBsvData, setWithoutBsvData] = useState<Award[]>([]);
   const [withBsvData, setWithBsvData] = useState<Award[]>([]);
+  const [originalData, setOriginalData] = useState<Award[]>([]);
   const [isLoadingWithout, setIsLoadingWithout] = useState(false);
   const [isLoadingWith, setIsLoadingWith] = useState(false);
   const [integrityProofCreated, setIntegrityProofCreated] = useState(false);
@@ -36,6 +37,7 @@ export function DataIntegrityDemo() {
       const data: ApiResponse = await response.json();
       setWithoutBsvData(data.results);
       setWithBsvData(data.results);
+      setOriginalData(data.results);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -211,6 +213,14 @@ export function DataIntegrityDemo() {
     fetchOriginalData();
   }, []);
 
+  // Handle tab changes - reset when switching to BSV tab
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'with' && isHacked) {
+      resetDemo();
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -224,60 +234,117 @@ export function DataIntegrityDemo() {
     const isRecord5 = index === 4;
     const showIssue = (isRecord3 || isRecord5) && showValidationIssues;
     const showLink = index < 5;
+    const originalRecord = originalData[index];
 
     return (
-      <div
-        key={record.internal_id}
-        className={`grid grid-cols-12 gap-2 px-3 py-2 text-sm border-b hover:bg-gray-50 transition-opacity duration-1000 ${
-          showIssue ? 'bg-red-50 border-red-300' : 'border-gray-200'
-        } ${isAnimating ? 'opacity-0' : 'opacity-100'}`}
-      >
-        <div className="col-span-1 flex items-center font-mono text-xs text-gray-500">
-          {index + 1}
+      <>
+        {/* Tampered Record (Red) */}
+        <div
+          key={record.internal_id}
+          className={`grid grid-cols-12 gap-2 px-3 py-2 text-sm border-b transition-opacity duration-1000 ${
+            showIssue ? 'bg-red-50 border-red-300' : 'border-gray-200 hover:bg-gray-50'
+          } ${isAnimating ? 'opacity-0' : 'opacity-100'}`}
+        >
+          <div className="col-span-1 flex items-center font-mono text-xs text-gray-500">
+            {index + 1}
+          </div>
+          <div className="col-span-2 flex items-center font-medium truncate">
+            {record['Award ID']}
+          </div>
+          <div className={`col-span-3 flex items-center truncate ${
+            isRecord5 && showIssue ? 'text-red-600 font-semibold' : ''
+          }`}>
+            {record['Recipient Name']}
+          </div>
+          <div className={`col-span-2 flex items-center justify-end font-mono ${
+            isRecord3 && showIssue ? 'text-red-600 font-bold' : ''
+          }`}>
+            {formatCurrency(record['Award Amount'])}
+          </div>
+          <div className="col-span-3 flex items-center text-xs text-gray-600 truncate">
+            {record.Description}
+          </div>
+          <div className="col-span-1 flex items-center justify-end gap-1">
+            {showIssue && (
+              <Badge variant="destructive" className="text-xs">Tampered</Badge>
+            )}
+            {showLink && txids.length > 0 && (
+              <a
+                href={`https://whatsonchain.com/tx/${txids[0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 transition-colors"
+                title="View on WhatsOnChain"
+              >
+                {showIssue ? <Link2Off className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+              </a>
+            )}
+          </div>
         </div>
-        <div className="col-span-2 flex items-center font-medium truncate">
-          {record['Award ID']}
-        </div>
-        <div className={`col-span-3 flex items-center truncate ${
-          isRecord5 && showIssue ? 'text-red-600 font-semibold' : ''
-        }`}>
-          {record['Recipient Name']}
-        </div>
-        <div className={`col-span-2 flex items-center justify-end font-mono ${
-          isRecord3 && showIssue ? 'text-red-600 font-bold' : ''
-        }`}>
-          {formatCurrency(record['Award Amount'])}
-        </div>
-        <div className="col-span-3 flex items-center text-xs text-gray-600 truncate">
-          {record.Description}
-        </div>
-        <div className="col-span-1 flex items-center justify-end gap-1">
-          {showIssue && (
-            <Badge variant="destructive" className="text-xs">Tampered</Badge>
-          )}
-          {showLink && txids.length > 0 && (
-            <a
-              href={`https://whatsonchain.com/tx/${txids[0]}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 transition-colors"
-              title="View on WhatsOnChain"
-            >
-              {showIssue ? <Link2Off className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-            </a>
-          )}
-        </div>
-      </div>
+
+        {/* Original Record (Green) - Show only when tampering detected */}
+        {showIssue && originalRecord && (
+          <div
+            className="grid grid-cols-12 gap-2 px-3 py-2 text-sm border-b bg-green-50 border-green-300 transition-opacity duration-1000"
+          >
+            <div className="col-span-1 flex items-center font-mono text-xs text-gray-500">
+              {index + 1}
+            </div>
+            <div className="col-span-2 flex items-center font-medium truncate">
+              {originalRecord['Award ID']}
+            </div>
+            <div className={`col-span-3 flex items-center truncate ${
+              isRecord5 ? 'text-green-600 font-semibold' : ''
+            }`}>
+              {originalRecord['Recipient Name']}
+            </div>
+            <div className={`col-span-2 flex items-center justify-end font-mono ${
+              isRecord3 ? 'text-green-600 font-bold' : ''
+            }`}>
+              {formatCurrency(originalRecord['Award Amount'])}
+            </div>
+            <div className="col-span-3 flex items-center text-xs text-gray-600 truncate">
+              {originalRecord.Description}
+            </div>
+            <div className="col-span-1 flex items-center justify-end gap-1">
+              <Badge variant="default" className="text-xs bg-green-600">Original</Badge>
+              {showLink && txids.length > 0 && (
+                <a
+                  href={`https://whatsonchain.com/tx/${txids[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                  title="View on WhatsOnChain"
+                >
+                  {<Link2 className="w-4 h-4" />}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">BSV Data Integrity Demo</h1>
-        <p className="text-muted-foreground">
-          Demonstrating how BSV blockchain can verify data integrity and detect unauthorized changes
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">BSV Data Integrity Demo</h1>
+          <p className="text-muted-foreground">
+            Demonstrating how BSV blockchain can verify data integrity and detect unauthorized changes
+          </p>
+        </div>
+
+        {/* Reset Demo Button - Top Right */}
+        <Button
+          onClick={resetDemo}
+          variant="outline"
+          size="lg"
+          className="text-lg px-6 py-6"
+        >
+          🔄 Reset Demo
+        </Button>
       </div>
 
       {/* Action Buttons */}
@@ -299,19 +366,9 @@ export function DataIntegrityDemo() {
           variant="destructive"
           size="lg"
           className="text-lg px-8 py-6"
-          disabled={isHacked}
+          disabled={isHacked || activeTab === 'with' && !integrityProofCreated}
         >
-          🔓 Initiate Hack
-        </Button>
-
-        {/* Reset Demo Button */}
-        <Button
-          onClick={resetDemo}
-          variant="outline"
-          size="lg"
-          className="text-lg px-8 py-6"
-        >
-          🔄 Reset Demo
+          🚨 Simulate Data Manipulation
         </Button>
 
         {/* Validate Data Integrity Button */}
@@ -328,15 +385,15 @@ export function DataIntegrityDemo() {
         )}
       </div>
 
-      <Tabs defaultValue="without" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="without" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="without">
             <ShieldAlert className="w-4 h-4 mr-2" />
-            Without BSV Blockchain
+            Vulnerable Database
           </TabsTrigger>
           <TabsTrigger value="with">
             <Shield className="w-4 h-4 mr-2" />
-            With BSV Blockchain
+            Protected With BSV Blockchain
           </TabsTrigger>
         </TabsList>
 
