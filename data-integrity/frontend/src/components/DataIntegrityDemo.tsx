@@ -241,8 +241,8 @@ export function DataIntegrityDemo() {
         {/* Tampered Record (Red) */}
         <div
           key={record.internal_id}
-          className={`grid grid-cols-12 gap-2 px-3 py-2 text-sm border-b transition-opacity duration-1000 ${
-            showIssue ? 'bg-red-50 border-red-300' : 'border-gray-200 hover:bg-gray-50'
+          className={`grid grid-cols-12 gap-2 px-3 py-2.5 text-sm border-b transition-all duration-1000 ${
+            showIssue ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200 hover:bg-slate-50'
           } ${isAnimating ? 'opacity-0' : 'opacity-100'}`}
         >
           <div className="col-span-1 flex items-center font-mono text-xs text-gray-500">
@@ -269,15 +269,19 @@ export function DataIntegrityDemo() {
               <Badge variant="destructive" className="text-xs">Tampered</Badge>
             )}
             {showLink && txids.length > 0 && (
-              <a
-                href={`https://whatsonchain.com/tx/${txids[0]}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 transition-colors"
-                title="View on WhatsOnChain"
+              <>
+                {showIssue 
+                ? <Link2Off className="w-4 h-4" /> 
+                : <a
+                  href={`https://whatsonchain.com/tx/${txids[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                  title="View on WhatsOnChain"
               >
-                {showIssue ? <Link2Off className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-              </a>
+                <Link2 className="w-4 h-4" />
+              </a>}
+              </>
             )}
           </div>
         </div>
@@ -285,7 +289,7 @@ export function DataIntegrityDemo() {
         {/* Original Record (Green) - Show only when tampering detected */}
         {showIssue && originalRecord && (
           <div
-            className="grid grid-cols-12 gap-2 px-3 py-2 text-sm border-b bg-green-50 border-green-300 transition-opacity duration-1000"
+            className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm border-b bg-green-50 border-green-200 transition-all duration-1000"
           >
             <div className="col-span-1 flex items-center font-mono text-xs text-gray-500">
               {index + 1}
@@ -327,90 +331,76 @@ export function DataIntegrityDemo() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">BSV Data Integrity Demo</h1>
-          <p className="text-muted-foreground">
-            Demonstrating how BSV blockchain can verify data integrity and detect unauthorized changes
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Decorative gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-indigo-900/20 pointer-events-none"></div>
+
+      <div className="container mx-auto p-8 relative z-10">
+        <div className="mb-12 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-indigo-300 to-blue-400 bg-clip-text text-transparent drop-shadow-2xl">
+              BSV Data Integrity Demo
+            </h1>
+            <p className="text-xl text-slate-300 font-light tracking-wide">
+              Demonstrating how BSV blockchain can verify data integrity and detect unauthorized changes
+            </p>
+          </div>
+
+          {/* Reset Demo Button - Top Right */}
+          <Button
+            onClick={resetDemo}
+            variant="outline"
+            size="lg"
+            className="text-lg px-6 py-6 bg-slate-800/60 backdrop-blur-md border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:border-slate-500 hover:text-white hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
+          >
+            🔄 Reset Demo
+          </Button>
         </div>
 
-        {/* Reset Demo Button - Top Right */}
-        <Button
-          onClick={resetDemo}
-          variant="outline"
-          size="lg"
-          className="text-lg px-6 py-6"
-        >
-          🔄 Reset Demo
-        </Button>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mb-6 flex justify-center gap-4 flex-wrap">
-        {/* Create Integrity Proofs Button */}
-        <Button
-          onClick={createIntegrityProofs}
-          disabled={!isInitialized || integrityProofCreated || activeTab === 'without'}
-          size="lg"
-          className="text-lg px-8 py-6"
-          variant={activeTab === 'without' ? 'ghost' : 'default'}
-        >
-          {integrityProofCreated ? '✓ Integrity Proofs Created' : 'Create Integrity Proofs'}
-        </Button>
-
-        {/* Initiate Hack Button */}
-        <Button
-          onClick={initiateHack}
-          variant="destructive"
-          size="lg"
-          className="text-lg px-8 py-6"
-          disabled={isHacked || activeTab === 'with' && !integrityProofCreated}
-        >
-          🚨 Simulate Data Manipulation
-        </Button>
-
-        {/* Validate Data Integrity Button */}
-        {integrityProofCreated && (
-          <Button
-            onClick={validateDataIntegrity}
-            variant={activeTab === 'without' ? 'ghost' : 'outline'}
-            size="lg"
-            className="text-lg px-8 py-6"
-            disabled={activeTab === 'without' || validationResults.record3 !== null}
-          >
-            {validationResults.record3 !== null ? '✓ Validation Complete' : 'Validate Data Integrity'}
-          </Button>
-        )}
-      </div>
-
       <Tabs defaultValue="without" className="w-full" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="without">
-            <ShieldAlert className="w-4 h-4 mr-2" />
+        <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 bg-slate-800/80 backdrop-blur-xl p-1.5 shadow-2xl shadow-slate-900/50 border border-slate-700 rounded-xl h-auto">
+          <TabsTrigger
+            value="without"
+            className="text-slate-400 font-medium py-3 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:via-rose-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-red-500/50 transition-all duration-300 hover:text-slate-200"
+          >
+            <ShieldAlert className="w-5 h-5 mr-2" />
             Vulnerable Database
           </TabsTrigger>
-          <TabsTrigger value="with">
-            <Shield className="w-4 h-4 mr-2" />
+          <TabsTrigger
+            value="with"
+            className="text-slate-400 font-medium py-3 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:via-indigo-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-blue-500/50 transition-all duration-300 hover:text-slate-200"
+          >
+            <Shield className="w-5 h-5 mr-2" />
             Protected With BSV Blockchain
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="without" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>No Integrity Verification</CardTitle>
-              <CardDescription>
+        <TabsContent value="without" className="space-y-4 mt-10">
+          <Card className="bg-slate-800/40 backdrop-blur-md shadow-2xl shadow-slate-900/50 border border-slate-700/50">
+            <CardHeader className="bg-gradient-to-r from-slate-800/60 via-red-900/30 to-slate-800/60 border-b border-slate-700/50 pb-6">
+              <CardTitle className="text-3xl text-slate-100 font-bold">No Integrity Verification</CardTitle>
+              <CardDescription className="text-lg text-slate-300 mt-2">
                 {!isHacked
                   ? "Data is displayed from the database with no integrity checks."
                   : "Data has been altered, but it's not immediately apparent and there's no way to check whether it's changed since original publication."}
               </CardDescription>
+              {/* Action Buttons */}
+      <div className="mt-1 flex justify-end gap-5 flex-wrap">
+        <Button
+          onClick={initiateHack}
+          variant="destructive"
+          size="lg"
+          className="text-lg px-10 py-7 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-600 hover:via-rose-600 hover:to-red-700 text-white font-semibold shadow-2xl shadow-red-500/50 hover:shadow-red-500/70 hover:scale-105 transition-all duration-300 disabled:opacity-30 border border-red-400/30"
+          disabled={isHacked || (activeTab === 'with' && !integrityProofCreated)}
+        >
+          Simulate Data Manipulation
+        </Button>
+      </div>
             </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg overflow-hidden bg-white">
+            <CardContent className="p-6">
+              <div className="rounded-xl overflow-hidden shadow-2xl border border-slate-300">
                 {/* Spreadsheet Header */}
-                <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold bg-gray-100 border-b-2 border-gray-300">
+                <div className="grid grid-cols-12 gap-2 px-3 py-3 text-xs font-bold bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300 text-slate-700">
                   <div className="col-span-1">#</div>
                   <div className="col-span-2">Award ID</div>
                   <div className="col-span-3">Recipient Name</div>
@@ -429,18 +419,55 @@ export function DataIntegrityDemo() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="with" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>With BSV Blockchain Integrity Protection</CardTitle>
-              <CardDescription>
+        <TabsContent value="with" className="space-y-4 mt-10">
+          <Card className="bg-slate-800/40 backdrop-blur-md shadow-2xl shadow-slate-900/50 border border-slate-700/50">
+            <CardHeader className="bg-gradient-to-r from-slate-800/60 via-blue-900/30 to-slate-800/60 border-b border-slate-700/50 pb-6">
+              <CardTitle className="text-3xl bg-gradient-to-r from-blue-400 via-indigo-300 to-blue-400 bg-clip-text text-transparent font-bold">
+                With BSV Blockchain Integrity Protection
+              </CardTitle>
+              <CardDescription className="text-lg text-slate-300 mt-2">
                 Create blockchain integrity proofs, then validate after a hack to detect tampering.
               </CardDescription>
+              {/* Action Buttons */}
+      <div className="mt-1 flex justify-end gap-5 flex-wrap">
+        {/* Create Integrity Proofs Button */}
+        <Button
+          onClick={createIntegrityProofs}
+          disabled={!isInitialized || integrityProofCreated || activeTab === 'without'}
+          size="lg"
+          className="text-lg px-10 py-7 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 hover:from-blue-600 hover:via-indigo-600 hover:to-blue-700 text-white font-semibold shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 border border-blue-400/30"
+          variant={activeTab === 'without' ? 'ghost' : 'default'}
+        >
+          {integrityProofCreated ? '✓ Integrity Proofs Created' : 'Create Integrity Proofs'}
+        </Button>
+
+        {/* Initiate Hack Button */}
+        <Button
+          onClick={initiateHack}
+          variant="destructive"
+          size="lg"
+          className="text-lg px-10 py-7 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-600 hover:via-rose-600 hover:to-red-700 text-white font-semibold shadow-2xl shadow-red-500/50 hover:shadow-red-500/70 hover:scale-105 transition-all duration-300 disabled:opacity-30 border border-red-400/30"
+          disabled={isHacked || (activeTab === 'with' && !integrityProofCreated)}
+        >
+          Simulate Data Manipulation
+        </Button>
+
+        {/* Validate Data Integrity Button */}
+          <Button
+            onClick={validateDataIntegrity}
+            variant={!integrityProofCreated || !isHacked ? 'ghost' : 'outline'}
+            size="lg"
+            className="text-lg px-10 py-7 bg-green-800/60 backdrop-blur-md border-2 border-green-600 text-green-200 hover:bg-green-700/80 hover:border-green-500 hover:text-white font-semibold shadow-xl shadow-green-900/50 hover:shadow-2xl hover:shadow-green-700/50 hover:scale-105 transition-all duration-300 disabled:opacity-30"
+            disabled={!integrityProofCreated || !isHacked}
+          >
+            {validationResults.record3 !== null ? '✓ Validation Complete' : 'Validate Data Integrity'}
+          </Button>
+      </div>
             </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg overflow-hidden bg-white">
+            <CardContent className="p-6">
+              <div className="rounded-xl overflow-hidden shadow-2xl border border-slate-300">
                 {/* Spreadsheet Header */}
-                <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold bg-gray-100 border-b-2 border-gray-300">
+                <div className="grid grid-cols-12 gap-2 px-3 py-3 text-xs font-bold bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300 text-slate-700">
                   <div className="col-span-1">#</div>
                   <div className="col-span-2">Award ID</div>
                   <div className="col-span-3">Recipient Name</div>
@@ -461,6 +488,7 @@ export function DataIntegrityDemo() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
