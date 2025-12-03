@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Backend API Service (Development with hot reload)
+  data-integrity-backend:
+    build:
+      context: ./data-integrity/backend
+      dockerfile: Dockerfile
+    container_name: data-integrity-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      # Mount source code for hot reload
+      - ./data-integrity/backend/src:/app/src
+      - ./data-integrity/src/data:/app/../src/data:ro
+      # Prevent overwriting node_modules
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  # Frontend Service (Development)
+  data-integrity-frontend:
+    build:
+      context: ./data-integrity/frontend
+      dockerfile: Dockerfile.dev
+      args:
+        - VITE_API_URL=http://localhost:3001/api
+    container_name: data-integrity-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api
+    volumes:
+      # Mount source code for hot reload
+      - ./data-integrity/frontend/src:/app/src
+      - ./data-integrity/frontend/index.html:/app/index.html
+      # Prevent overwriting node_modules
+      - /app/node_modules
+    command: npm run dev -- --host
+    depends_on:
+      - data-integrity-backend
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+networks:
+  demo-network:
+    driver: bridge

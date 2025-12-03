@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  data-integrity-backend:
+    build:
+      context: ./data-integrity/backend
+      dockerfile: Dockerfile
+    container_name: data-integrity-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    volumes:
+      # Mount the data directory so backend can access data files
+      - ./data-integrity/src/data:/app/../src/data:ro
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  # Frontend Service
+  data-integrity-frontend:
+    build:
+      context: ./data-integrity/frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:3001/api
+    container_name: data-integrity-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - data-integrity-backend
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+networks:
+  demo-network:
+    driver: bridge
