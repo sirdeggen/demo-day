@@ -102,7 +102,7 @@ export function AccessControlDemo() {
 
       const data = await response.json();
 
-      setVideoUrl(`${API_BASE_URL.replace('/api', '')}${data.videoUrl}`);
+      setVideoUrl(data.videoUrl);
       toast.dismiss();
       toast.success('Access granted! Enjoy the content.');
     } catch (error: any) {

@@ -2,20 +2,16 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
-import { createAuthMiddleware } from '@bsv/auth-express-middleware';
+import { createAuthMiddleware, AuthRequest } from '@bsv/auth-express-middleware';
 import { getWallet } from './wallet';
-import { Utils } from '@bsv/sdk';
+import { Utils, VerifiableCertificate } from '@bsv/sdk';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3002;
 const CERTIFIER_PUBLIC_KEY = '03c644fe2fd97673a5d86555a58587e7936390be6582ece262bc387014bcff6fe4';
 
-// Extended Request type to include certificates
-interface AuthenticatedRequest extends Request {
-  certificates?: any[];
-  senderPublicKey?: string;
-}
+const certificates: Record<string, any[]> = {};
 
 async function startServer() {
   const app = express();
@@ -31,18 +27,40 @@ async function startServer() {
   const certificateType = Utils.toBase64(Utils.toArray('age-verification', 'utf8'));
 
   // Certificate validation callback
-  function onCertificatesReceived(
+  async function onCertificatesReceived(
     senderPublicKey: string,
     certs: any[],
-    req: AuthenticatedRequest,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ) {
     console.log(`Received certificates from ${senderPublicKey}:`, certs);
 
+    // Decrypt certificate fields
+    try {
+      for (const cert of certs) {
+        if (cert.keyring && cert.fields && cert.certifier) {
+          // Create a verifiable certificate for this verifier (server)
+          const verifiableCert = VerifiableCertificate.fromCertificate(cert, cert.keyring);
+
+          // Decrypt the fields using the verifiable certificate's keyring
+          const decryptedFields = await verifiableCert.decryptFields(wallet);
+
+          console.log('Decrypted certificate fields:', decryptedFields);
+
+          // Replace encrypted fields with decrypted values
+          cert.fields = decryptedFields;
+        }
+      }
+    } catch (error) {
+      console.error('Error decrypting certificate fields:', error);
+    }
+
     // Store certificates and sender in request for route handlers
-    req.certificates = certs;
-    req.senderPublicKey = senderPublicKey;
+    if (!certificates[senderPublicKey]) {
+      certificates[senderPublicKey] = [];
+    }
+    certificates[senderPublicKey].push(...certs);
 
     next();
   }
@@ -62,14 +80,15 @@ async function startServer() {
   app.use(authMiddleware)
 
   // Protected routes (require auth & certificates)
-  app.get('/api/protected/video', (req: AuthenticatedRequest, res: Response) => {
+  app.get('/api/protected/video', (req: AuthRequest, res: Response) => {
     try {
+      const identityKey = req.auth?.identityKey as string;
       // Validate certificates
-      if (!req.certificates || req.certificates.length === 0) {
+      if (!certificates[identityKey][0]) {
         return res.status(403).json({ error: 'No certificates provided' });
       }
 
-      const cert = req.certificates[0];
+      const cert = certificates[identityKey][0];
 
       // Check if certificate has required fields
       if (!cert.fields || !cert.fields.over18 || !cert.fields.timestamp) {
