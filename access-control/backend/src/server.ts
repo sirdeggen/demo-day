@@ -17,7 +17,19 @@ async function startServer() {
   const app = express();
 
   // Middleware
-  app.use(cors());
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Headers', '*')
+    res.header('Access-Control-Allow-Methods', '*')
+    res.header('Access-Control-Expose-Headers', '*')
+    res.header('Access-Control-Allow-Private-Network', 'true')
+    if (req.method === 'OPTIONS') {
+      // Handle CORS preflight requests to allow cross-origin POST/PUT requests
+      res.sendStatus(200)
+    } else {
+      next()
+    }
+  })
   app.use(express.json());
 
   // Get wallet instance
