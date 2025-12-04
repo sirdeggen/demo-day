@@ -155,9 +155,3 @@ export async function getWallet(): Promise<WalletInterface> {
     return walletInstance
 }
 ```
-
-## Security Considerations
-
-## Testing
-
-## Future Improvements
