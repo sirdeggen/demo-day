@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/context/WalletContext';
@@ -17,6 +17,7 @@ export function AccessControlDemo() {
   const [mode, setMode] = useState<AppMode>('certificate-acquisition');
   const [hasCertificate, setHasCertificate] = useState(false);
   const [certificateExpiry, setCertificateExpiry] = useState<number | null>(null);
+  const [certificateSerialNumber, setCertificateSerialNumber] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,6 +46,19 @@ export function AccessControlDemo() {
       });
 
       console.log('Certificate acquired:', response);
+
+      // Fetch the certificate to get its serial number
+      const certList = await wallet.listCertificates({
+        certifiers: [CERTIFIER_PUBLIC_KEY],
+        types: [certificateType],
+        limit: 1
+      });
+
+      if (certList.certificates && certList.certificates.length > 0) {
+        const cert = certList.certificates[0];
+        setCertificateSerialNumber(cert.serialNumber);
+        console.log('Certificate serial number:', cert.serialNumber);
+      }
 
       setHasCertificate(true);
       setCertificateExpiry(timestamp + 180); // Expires in 180 seconds (3 minutes)
@@ -100,10 +114,34 @@ export function AccessControlDemo() {
     }
   };
 
+  const relinquishExpiredCertificate = async () => {
+    if (!wallet || !isInitialized || !certificateSerialNumber) {
+      return;
+    }
+
+    try {
+      console.log('Relinquishing expired certificate:', certificateSerialNumber);
+
+      await wallet.relinquishCertificate({
+        type: Utils.toBase64(Utils.toArray('age-verification', 'utf8')),
+        serialNumber: certificateSerialNumber,
+        certifier: CERTIFIER_PUBLIC_KEY
+      });
+
+      console.log('Certificate relinquished successfully');
+      toast.info('Expired certificate has been relinquished');
+
+      setCertificateSerialNumber(null);
+    } catch (error) {
+      console.error('Error relinquishing certificate:', error);
+    }
+  };
+
   const resetDemo = () => {
     setMode('certificate-acquisition');
     setHasCertificate(false);
     setCertificateExpiry(null);
+    setCertificateSerialNumber(null);
     setVideoUrl(null);
   };
 
@@ -112,6 +150,22 @@ export function AccessControlDemo() {
     const now = Math.floor(Date.now() / 1000);
     return now >= certificateExpiry;
   };
+
+  // Check for expired certificates and relinquish them
+  useEffect(() => {
+    if (!hasCertificate || !certificateExpiry || !certificateSerialNumber) {
+      return;
+    }
+
+    const checkExpiry = setInterval(() => {
+      if (isExpired() && certificateSerialNumber) {
+        relinquishExpiredCertificate();
+        clearInterval(checkExpiry);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(checkExpiry);
+  }, [hasCertificate, certificateExpiry, certificateSerialNumber]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
