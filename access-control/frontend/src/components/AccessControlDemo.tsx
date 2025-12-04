@@ -5,6 +5,7 @@ import { useWallet } from '@/context/WalletContext';
 import { Utils, AuthFetch } from '@bsv/sdk';
 import { toast } from 'sonner';
 import { ShieldCheck, Video, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { CountdownTimer } from './CountdownTimer';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
 const CERTIFIER_PUBLIC_KEY = '03c644fe2fd97673a5d86555a58587e7936390be6582ece262bc387014bcff6fe4';
@@ -46,7 +47,7 @@ export function AccessControlDemo() {
       console.log('Certificate acquired:', response);
 
       setHasCertificate(true);
-      setCertificateExpiry(timestamp + 60); // Expires in 60 seconds
+      setCertificateExpiry(timestamp + 180); // Expires in 180 seconds (3 minutes)
       toast.dismiss();
       toast.success('Certificate acquired successfully!');
 
@@ -106,14 +107,10 @@ export function AccessControlDemo() {
     setVideoUrl(null);
   };
 
-  const getRemainingTime = () => {
-    if (!certificateExpiry) return 0;
-    const remaining = certificateExpiry - Math.floor(Date.now() / 1000);
-    return Math.max(0, remaining);
-  };
-
   const isExpired = () => {
-    return hasCertificate && getRemainingTime() === 0;
+    if (!certificateExpiry) return false;
+    const now = Math.floor(Date.now() / 1000);
+    return now >= certificateExpiry;
   };
 
   return (
@@ -162,7 +159,7 @@ export function AccessControlDemo() {
                 Step 1: Acquire Age Verification Certificate
               </CardTitle>
               <CardDescription className="text-lg text-slate-700 mt-3">
-                Request a short-lived certificate (60 seconds) to prove you're over 18
+                Request a short-lived certificate (3 minutes) to prove you're over 18
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-8">
@@ -179,7 +176,7 @@ export function AccessControlDemo() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                      <span><strong>Validity:</strong> 60 seconds</span>
+                      <span><strong>Validity:</strong> 3 minutes (180 seconds)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
@@ -227,12 +224,7 @@ export function AccessControlDemo() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Time Remaining</p>
-                    <p className="text-3xl font-bold text-teal-700">
-                      {getRemainingTime()}s
-                    </p>
-                  </div>
+                  {certificateExpiry && <CountdownTimer expiryTimestamp={certificateExpiry} />}
                   <Button
                     onClick={resetDemo}
                     variant="outline"

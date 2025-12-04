@@ -59,13 +59,10 @@ async function startServer() {
     onCertificatesReceived
   });
 
-  // Public routes (no auth required)
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
+  app.use(authMiddleware)
 
   // Protected routes (require auth & certificates)
-  app.get('/api/protected/video', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  app.get('/api/protected/video', (req: AuthenticatedRequest, res: Response) => {
     try {
       // Validate certificates
       if (!req.certificates || req.certificates.length === 0) {
@@ -85,15 +82,15 @@ async function startServer() {
         return res.status(403).json({ error: 'Access denied: Must be over 18' });
       }
 
-      // Validate timestamp is within last minute
+      // Validate timestamp is within last 3 minutes
       const timestamp = parseInt(cert.fields.timestamp);
       const now = Math.floor(Date.now() / 1000);
       const age = now - timestamp;
 
-      if (age > 60) {
+      if (age > 180) {
         return res.status(403).json({
           error: 'Certificate expired',
-          details: `Certificate is ${age} seconds old (max 60 seconds)`
+          details: `Certificate is ${age} seconds old (max 180 seconds)`
         });
       }
 
@@ -113,9 +110,6 @@ async function startServer() {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-
-  // Serve video files from public directory
-  app.use('/video', express.static(path.join(__dirname, '../../public')));
 
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
