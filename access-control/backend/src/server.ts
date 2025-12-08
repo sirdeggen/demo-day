@@ -1,17 +1,16 @@
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import path from 'path';
 import dotenv from 'dotenv';
 import { createAuthMiddleware, AuthRequest } from '@bsv/auth-express-middleware';
 import { getWallet } from './wallet';
-import { Utils, VerifiableCertificate } from '@bsv/sdk';
+import { Utils, VerifiableCertificate, SessionManager } from '@bsv/sdk';
+import { AgeVerifier } from './age-verifier';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3002;
 const CERTIFIER_PUBLIC_KEY = '03c644fe2fd97673a5d86555a58587e7936390be6582ece262bc387014bcff6fe4';
 
-const certificates: Record<string, any[]> = {};
+const age = new AgeVerifier();
 
 async function startServer() {
   const app = express();
@@ -62,20 +61,26 @@ async function startServer() {
 
           // Replace encrypted fields with decrypted values
           cert.fields = decryptedFields;
+
+          // Validate timestamp is within last 3 minutes
+          const timestamp = parseInt(cert.fields.timestamp);
+          const now = Math.floor(Date.now() / 1000);
+          const certAge = now - timestamp;
+          console.log({ timestamp, now, certAge })
+          if (cert.fields.over18 === 'true' && certAge < 180 && timestamp <= now) {
+            console.log('setting verified over 18', { senderPublicKey, timestamp, now, certAge });
+            age.setVerifiedOver18(senderPublicKey);
+          }
         }
       }
     } catch (error) {
       console.error('Error decrypting certificate fields:', error);
     }
 
-    // Store certificates and sender in request for route handlers
-    if (!certificates[senderPublicKey]) {
-      certificates[senderPublicKey] = [];
-    }
-    certificates[senderPublicKey].push(...certs);
-
     next();
   }
+
+  const sessionManager = new SessionManager();
 
   // Create auth middleware
   const authMiddleware = createAuthMiddleware({
@@ -86,6 +91,7 @@ async function startServer() {
         [certificateType]: ['over18', 'timestamp']
       }
     },
+    sessionManager,
     onCertificatesReceived
   });
 
@@ -94,39 +100,16 @@ async function startServer() {
   // Protected routes (require auth & certificates)
   app.get('/api/protected/video', (req: AuthRequest, res: Response) => {
     try {
-      const identityKey = req.auth?.identityKey as string;
+      const identityKey = req?.auth?.identityKey as string;
+
+      console.log('Identity key:', identityKey);
+
+      const isOver18 = age.checkVerifiedOver18(identityKey);
+
+
       // Validate certificates
-      if (!certificates[identityKey][0]) {
-        return res.status(403).json({ error: 'No certificates provided' });
-      }
-
-      const cert = certificates[identityKey][0];
-
-      // Check if certificate has required fields
-      if (!cert.fields || !cert.fields.over18 || !cert.fields.timestamp) {
-        return res.status(403).json({ error: 'Invalid certificate fields' });
-      }
-
-      // Validate over18 is true
-      const over18 = cert.fields.over18;
-      if (over18 !== 'true' && over18 !== true) {
-        return res.status(403).json({ error: 'Access denied: Must be over 18' });
-      }
-
-      // Validate timestamp is within last 3 minutes
-      const timestamp = parseInt(cert.fields.timestamp);
-      const now = Math.floor(Date.now() / 1000);
-      const age = now - timestamp;
-
-      if (age > 180) {
-        return res.status(403).json({
-          error: 'Certificate expired',
-          details: `Certificate is ${age} seconds old (max 180 seconds)`
-        });
-      }
-
-      if (timestamp > now + 10) {
-        return res.status(403).json({ error: 'Certificate timestamp is in the future' });
+      if (!isOver18) {
+        return res.status(403).json({ error: 'Not verified as over 18' });
       }
 
       // All validations passed, return video URL

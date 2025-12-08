@@ -32,6 +32,31 @@ export function AccessControlDemo() {
 
     try {
       const certificateType = Utils.toBase64(Utils.toArray('age-verification', 'utf8'));
+
+      // First, relinquish any existing certificates to avoid sending old ones
+      const existingCerts = await wallet.listCertificates({
+        certifiers: [CERTIFIER_PUBLIC_KEY],
+        types: [certificateType]
+      });
+
+      console.log('Existing certificates before acquisition:', existingCerts);
+
+      if (existingCerts.certificates && existingCerts.certificates.length > 0) {
+        console.log(`Relinquishing ${existingCerts.certificates.length} old certificate(s)`);
+        for (const cert of existingCerts.certificates) {
+          try {
+            await wallet.relinquishCertificate({
+              type: certificateType,
+              serialNumber: cert.serialNumber,
+              certifier: CERTIFIER_PUBLIC_KEY
+            });
+            console.log('Relinquished certificate:', cert.serialNumber);
+          } catch (error) {
+            console.error('Error relinquishing certificate:', cert.serialNumber, error);
+          }
+        }
+      }
+
       const timestamp = Math.floor(Date.now() / 1000);
 
       const response = await wallet.acquireCertificate({
@@ -51,16 +76,20 @@ export function AccessControlDemo() {
       const certList = await wallet.listCertificates({
         certifiers: [CERTIFIER_PUBLIC_KEY],
         types: [certificateType],
-        limit: 1
+        limit: 10 // Get multiple certificates to see which ones exist
       });
+
+      console.log('Certificate list:', certList);
 
       if (certList.certificates && certList.certificates.length > 0) {
         const cert = certList.certificates[0];
         setCertificateSerialNumber(cert.serialNumber);
         console.log('Certificate serial number:', cert.serialNumber);
+        console.log('Certificate fields:', cert.fields);
       }
 
       setHasCertificate(true);
+      // Use the local timestamp for expiry tracking since we created it
       setCertificateExpiry(timestamp + 180); // Expires in 180 seconds (3 minutes)
       toast.dismiss();
       toast.success('Certificate acquired successfully!');
@@ -86,6 +115,14 @@ export function AccessControlDemo() {
     toast.loading('Requesting access to protected content...');
 
     try {
+      // Log current certificates before making the request
+      const certificateType = Utils.toBase64(Utils.toArray('age-verification', 'utf8'));
+      const currentCerts = await wallet.listCertificates({
+        certifiers: [CERTIFIER_PUBLIC_KEY],
+        types: [certificateType]
+      });
+      console.log('Certificates that will be sent:', currentCerts);
+
       const authFetch = new AuthFetch(wallet);
 
       const response = await authFetch.fetch(`${API_BASE_URL}/protected/video`, {
