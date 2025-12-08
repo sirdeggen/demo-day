@@ -1,4 +1,4 @@
-export interface HelloWorldRecord {
+export interface TokenDemoRecord {
   txid: string
   outputIndex: number
   message: string

@@ -1,16 +1,16 @@
 import { Collection, Db } from 'mongodb'
-import { HelloWorldRecord, UTXOReference } from './types.js'
+import { TokenDemoRecord, UTXOReference } from './types.js'
 
-// Implements a Lookup StorageEngine for HelloWorld
-export class HelloWorldStorage {
-  private readonly records: Collection<HelloWorldRecord>
+// Implements a Lookup StorageEngine for TokenDemo
+export class TokenDemoStorage {
+  private readonly records: Collection<TokenDemoRecord>
 
   /**
-   * Constructs a new HelloWorldStorage instance
+   * Constructs a new TokenDemoStorage instance
    * @param {Db} db - A connected MongoDB database instance
    */
   constructor(private readonly db: Db) {
-    this.records = db.collection<HelloWorldRecord>('helloWorldRecords')
+    this.records = db.collection<TokenDemoRecord>('TokenDemoRecords')
     this.createSearchableIndex() // Initialize the searchable index
   }
 
@@ -22,7 +22,7 @@ export class HelloWorldStorage {
   }
 
   /**
-   * Stores a new HelloWorld record in the database.
+   * Stores a new TokenDemo record in the database.
    * @param {string} txid - The transaction ID associated with this record
    * @param {number} outputIndex - The UTXO output index
    * @param {string} message - The message to be stored
@@ -38,7 +38,7 @@ export class HelloWorldStorage {
   }
 
   /**
-   * Deletes a HelloWorld record that matches the given transaction ID and output index.
+   * Deletes a TokenDemo record that matches the given transaction ID and output index.
    * @param {string} txid - The transaction ID of the record to delete
    * @param {number} outputIndex - The UTXO output index of the record to delete
    * @returns {Promise<void>} - Resolves when the record has been successfully deleted
@@ -48,7 +48,7 @@ export class HelloWorldStorage {
   }
 
   /**
-   * Finds HelloWorld records containing the specified message (case-insensitive).
+   * Finds TokenDemo records containing the specified message (case-insensitive).
    * Uses the collection’s full-text index for efficient matching.
    *
    * @param message       Partial or full message to search for
@@ -85,7 +85,7 @@ export class HelloWorldStorage {
   }
 
   /**
-   * Retrieves all HelloWorld records, optionally filtered by date range and sorted by creation time.
+   * Retrieves all TokenDemo records, optionally filtered by date range and sorted by creation time.
    * @param {number} [limit=50] - The maximum number of results to return
    * @param {number} [skip=0] - The number of results to skip (for pagination)
    * @param {Date} [startDate] - The earliest creation date to include (inclusive)

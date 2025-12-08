@@ -1,6 +1,6 @@
 import { AdmittanceInstructions, TopicManager } from '@bsv/overlay'
 import { Signature, Transaction, PushDrop, Utils } from '@bsv/sdk'
-import docs from './HelloWorldTopicDocs.js'
+import docs from './TokenDemoTopicDocs.js'
 
 /**
  * Topic manager for the simple "Hello‑World" messaging protocol.
@@ -12,7 +12,7 @@ import docs from './HelloWorldTopicDocs.js'
  *   4. The signature inside the drop must verify against the locking public key
  *      over the concatenated field data.
  */
-export default class HelloWorldTopicManager implements TopicManager {
+export default class TokenDemoTopicManager implements TopicManager {
   /**
    * Identify which outputs in the supplied transaction are admissible.
    *
@@ -26,7 +26,7 @@ export default class HelloWorldTopicManager implements TopicManager {
     const outputsToAdmit: number[] = []
 
     try {
-      console.log('HelloWorld topic manager invoked')
+      console.log('TokenDemo topic manager invoked')
       const parsedTx = Transaction.fromBEEF(beef)
 
       if (!Array.isArray(parsedTx.outputs) || parsedTx.outputs.length === 0) {
@@ -63,17 +63,17 @@ export default class HelloWorldTopicManager implements TopicManager {
       }
 
       if (outputsToAdmit.length === 0) {
-        throw new Error('HelloWorld topic manager: no outputs admitted!')
+        throw new Error('TokenDemo topic manager: no outputs admitted!')
       }
 
-      console.log(`Admitted ${outputsToAdmit.length} HelloWorld ${outputsToAdmit.length === 1 ? 'output' : 'outputs'}!`)
+      console.log(`Admitted ${outputsToAdmit.length} TokenDemo ${outputsToAdmit.length === 1 ? 'output' : 'outputs'}!`)
     } catch (err) {
       if (outputsToAdmit.length === 0 && (!previousCoins || previousCoins.length === 0)) {
         console.error('Error identifying admissible outputs:', err)
       }
     }
 
-    // The HelloWorld protocol never retains previous coins
+    // The TokenDemo protocol never retains previous coins
     return {
       outputsToAdmit,
       coinsToRetain: []
@@ -100,7 +100,7 @@ export default class HelloWorldTopicManager implements TopicManager {
     informationURL?: string
   }> {
     return {
-      name: 'HelloWorld Topic Manager',
+      name: 'TokenDemo Topic Manager',
       shortDescription: "What's your message to the world?"
     }
   }

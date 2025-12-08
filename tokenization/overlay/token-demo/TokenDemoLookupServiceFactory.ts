@@ -1,4 +1,4 @@
-import docs from './HelloWorldLookupDocs.md.js'
+import docs from './TokenDemoLookupDocs.md.js'
 import {
   LookupService,
   LookupQuestion,
@@ -9,11 +9,11 @@ import {
   OutputAdmittedByTopic,
   OutputSpent
 } from '@bsv/overlay'
-import { HelloWorldStorage } from './HelloWorldStorage.js'
+import { TokenDemoStorage } from './TokenDemoStorage.js'
 import { PushDrop, Utils } from '@bsv/sdk'
 import { Db } from 'mongodb'
 
-export interface HelloWorldQuery {
+export interface TokenDemoQuery {
   message?: string
   limit?: number
   skip?: number
@@ -27,11 +27,11 @@ export interface HelloWorldQuery {
  * Each admitted BRC‑48 Pay‑to‑Push‑Drop output stores **exactly one** UTF‑8 field – the message.
  * This service indexes those messages so they can be queried later.
  */
-export class HelloWorldLookupService implements LookupService {
+export class TokenDemoLookupService implements LookupService {
   readonly admissionMode: AdmissionMode = 'locking-script'
   readonly spendNotificationMode: SpendNotificationMode = 'none'
 
-  constructor(public storage: HelloWorldStorage) { }
+  constructor(public storage: TokenDemoStorage) { }
 
   /**
    * Invoked when a new output is added to the overlay.
@@ -41,20 +41,20 @@ export class HelloWorldLookupService implements LookupService {
     try {
       if (payload.mode !== 'locking-script') throw new Error('Invalid mode')
       const { topic, lockingScript, txid, outputIndex } = payload
-      if (payload.topic !== 'tm_helloworld') return
+      if (payload.topic !== 'tm_TokenDemo') return
 
       // Decode the PushDrop token
       const result = PushDrop.decode(lockingScript)
-      if (!result.fields || result.fields.length < 1) throw new Error('Invalid HelloWorld token: wrong field count')
+      if (!result.fields || result.fields.length < 1) throw new Error('Invalid TokenDemo token: wrong field count')
 
       const message = Utils.toUTF8(result.fields[0])
-      if (message.length < 2) throw new Error('Invalid HelloWorld token: message too short')
+      if (message.length < 2) throw new Error('Invalid TokenDemo token: message too short')
 
       // Persist for future lookup
       await this.storage.storeRecord(txid, outputIndex, message)
     } catch (err) {
       const { txid, outputIndex } = payload as { txid: string; outputIndex: number }
-      console.error(`HelloWorldLookupService: failed to index ${txid}.${outputIndex}`, err)
+      console.error(`TokenDemoLookupService: failed to index ${txid}.${outputIndex}`, err)
     }
   }
 
@@ -65,7 +65,7 @@ export class HelloWorldLookupService implements LookupService {
   async outputSpent(payload: OutputSpent): Promise<void> {
     if (payload.mode !== 'none') throw new Error('Invalid mode')
     const { topic, txid, outputIndex } = payload
-    if (topic === 'tm_helloworld') {
+    if (topic === 'tm_TokenDemo') {
       await this.storage.deleteRecord(txid, outputIndex)
     }
   }
@@ -86,7 +86,7 @@ export class HelloWorldLookupService implements LookupService {
    */
   async lookup(question: LookupQuestion): Promise<LookupFormula> {
     if (!question) throw new Error('A valid query must be provided!')
-    if (question.service !== 'ls_helloworld') throw new Error('Lookup service not supported!')
+    if (question.service !== 'ls_TokenDemo') throw new Error('Lookup service not supported!')
 
     const {
       message,
@@ -95,7 +95,7 @@ export class HelloWorldLookupService implements LookupService {
       startDate,
       endDate,
       sortOrder
-    } = question.query as HelloWorldQuery
+    } = question.query as TokenDemoQuery
 
     // Basic validation
     if (limit < 0) throw new Error('Limit must be a non‑negative number')
@@ -127,11 +127,11 @@ export class HelloWorldLookupService implements LookupService {
     informationURL?: string
   }> {
     return {
-      name: 'HelloWorld Lookup Service',
+      name: 'TokenDemo Lookup Service',
       shortDescription: 'Find messages on‑chain.'
     }
   }
 }
 
 // Factory
-export default (db: Db): HelloWorldLookupService => new HelloWorldLookupService(new HelloWorldStorage(db))
+export default (db: Db): TokenDemoLookupService => new TokenDemoLookupService(new TokenDemoStorage(db))
