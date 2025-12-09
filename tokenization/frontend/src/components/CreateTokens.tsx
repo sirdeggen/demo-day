@@ -89,9 +89,9 @@ export function CreateTokens({ wallet }: CreateTokensProps) {
             satoshis: 1,
             lockingScript: lockingScript.toHex(),
             outputDescription: 'Token output',
-            basket: 'demotokens',
+            basket: 'demotokens2',
             customInstructions: JSON.stringify({ protocolID, keyID, counterparty }),
-            tags: ['demotokens', 'mint', tokenId]
+            tags: ['demotokens2', 'mint', tokenId]
           }
         ],
         labels: ['demotokens2', 'mint'],
