@@ -1,8 +1,8 @@
 export interface TokenDemoRecord {
   txid: string
   outputIndex: number
-  message: string
-  createdAt: Date
+  tokenID: string
+  amount: number
 }
 
 export interface UTXOReference {

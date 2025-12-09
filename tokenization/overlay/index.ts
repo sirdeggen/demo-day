@@ -1,4 +1,6 @@
 import OverlayExpress from '@bsv/overlay-express'
+import TokenDemoTopicManager from './tokendemo/TokenDemoTopicManager'
+import TokenDemoLookupService from './tokendemo/TokenDemoLookupServiceFactory'
 
 import { config } from 'dotenv'
 import packageJson from './package.json'
@@ -54,8 +56,8 @@ const main = async () => {
     // - Topic managers decide what outputs can go in your overlay
     // - Lookup services help people find things in your overlay
     
-    server.configureTopicManager('tm_token-demos', new TokenDemoTopicManager())
-    server.configureLookupServiceWithMongo('ls_token-demos', TokenDemoLookupService)
+    server.configureTopicManager('tm_tokendemo', new TokenDemoTopicManager())
+    server.configureLookupServiceWithMongo('ls_tokendemo', TokenDemoLookupService)
 
     // For simple local deployments, sync can be disabled.
     server.configureEnableGASPSync(process.env?.GASP_ENABLED === 'true')
