@@ -11,7 +11,7 @@ interface SendTokensProps {
 }
 
 export function SendTokens({ wallet }: SendTokensProps) {
-  const { messageBoxClient, messageBoxUrl } = useWallet()
+  const { messageBoxClient } = useWallet()
   const [tokenId, setTokenId] = useState('')
   const [amount, setAmount] = useState('')
   const [recipient, setRecipient] = useState('')
@@ -275,7 +275,7 @@ export function SendTokens({ wallet }: SendTokensProps) {
                 id="recipient-search"
                 type="text"
                 value={identitySearch.inputValue}
-                onChange={(e) => identitySearch.handleInputChange(e, e.target.value)}
+                onChange={(e) => identitySearch.handleInputChange(e, e.target.value, 'input')}
                 placeholder="Search by name, email, etc."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 disabled={!!publicKeyInput && !!recipient}

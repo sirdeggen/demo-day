@@ -1,5 +1,47 @@
 services:
-  # Backend API Service
+  # MySQL Database (Shared)
+  mysql:
+    image: mysql:8.0
+    container_name: demo-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=appdb
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=apppass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - demo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB Database (Shared)
+  mongodb:
+    image: mongo:7
+    container_name: demo-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - demo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Data Integrity Backend
   data-integrity-backend:
     build:
       context: ./data-integrity/backend
@@ -11,13 +53,12 @@ services:
       - NODE_ENV=production
       - PORT=3001
     volumes:
-      # Mount the data directory so backend can access data files
       - ./data-integrity/src/data:/app/../src/data:ro
     networks:
       - demo-network
     restart: unless-stopped
 
-  # Frontend Service
+  # Data Integrity Frontend
   data-integrity-frontend:
     build:
       context: ./data-integrity/frontend
@@ -33,7 +74,7 @@ services:
       - demo-network
     restart: unless-stopped
 
-  # Access Control Backend Service
+  # Access Control Backend
   access-control-backend:
     build:
       context: ./access-control/backend
@@ -44,17 +85,16 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
-      - SERVER_PRIVATE_KEY=${ACCESS_CONTROL_SERVER_PRIVATE_KEY:-0000000000000000000000000000000000000000000000000000000000000001}
-      - WALLET_STORAGE_URL=${WALLET_STORAGE_URL:-https://staging-overlay.babbage.systems}
-      - BSV_NETWORK=${BSV_NETWORK:-mainnet}
+      - SERVER_PRIVATE_KEY=${ACCESS_CONTROL_SERVER_PRIVATE_KEY:-6f552333a2dd110ba07c60f9888ec903a3ef62b7f43983c285dd760a7456eb33}
+      - WALLET_STORAGE_URL=${WALLET_STORAGE_URL:-https://store-us-1.bsvb.tech}
+      - BSV_NETWORK=${BSV_NETWORK:-main}
     volumes:
-      # Mount the public directory for video files
       - ./access-control/public:/app/public:ro
     networks:
       - demo-network
     restart: unless-stopped
 
-  # Access Control Frontend Service
+  # Access Control Frontend
   access-control-frontend:
     build:
       context: ./access-control/frontend
@@ -70,6 +110,55 @@ services:
       - demo-network
     restart: unless-stopped
 
+  # Tokenization Overlay Service
+  tokenization-overlay:
+    build:
+      context: ./tokenization/overlay
+      dockerfile: Dockerfile
+    container_name: tokenization-overlay
+    ports:
+      - "8083:8083"
+    environment:
+      - NODE_NAME=demo-day
+      - HOSTING_URL=${TOKENIZATION_HOSTING_URL:-http://localhost:8083}
+      - ADMIN_TOKEN=${TOKENIZATION_ADMIN_TOKEN:-demo}
+      - NETWORK=main
+      - SERVER_PRIVATE_KEY=${TOKENIZATION_SERVER_PRIVATE_KEY:-6f552333a2dd110ba07c60f9888ec903a3ef62b7f43983c285dd760a7456eb33}
+      - WALLET_STORAGE_URL=https://store-us-1.bsvb.tech
+      - ARC_API_KEY=${TOKENIZATION_ARC_API_KEY:-mainnet_8af332fafbc44ab158c4133242ac2621}
+      - KNEX_URL=mysql://appuser:apppass@mysql:3306/appdb
+      - MONGO_URL=mongodb://root:example@mongodb:27017
+      - GASP_ENABLED=false
+      - PORT=8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  # Tokenization Frontend
+  tokenization-frontend:
+    build:
+      context: ./tokenization/frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_OVERLAY_URL=http://localhost:8083
+    container_name: tokenization-frontend
+    ports:
+      - "8082:80"
+    depends_on:
+      - tokenization-overlay
+    networks:
+      - demo-network
+    restart: unless-stopped
+
 networks:
   demo-network:
     driver: bridge
+
+volumes:
+  mysql-data:
+  mongodb-data:

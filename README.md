@@ -18,6 +18,32 @@ Demonstrates how BSV blockchain can verify data integrity and detect unauthorize
 
 **Tech Stack**: React, TypeScript, Vite, shadcn/ui, Express, @bsv/sdk
 
+### 2. Access Control Demo
+
+**Location**: [access-control/](./access-control/)
+
+Demonstrates how BSV blockchain can provide secure access control for premium content using identity verification.
+
+**Features**:
+- Identity-based access control using BSV certificates
+- Premium video content gating
+- Secure authentication without traditional passwords
+
+**Tech Stack**: React, TypeScript, Vite, shadcn/ui, Express, @bsv/sdk
+
+### 3. Tokenization Demo
+
+**Location**: [tokenization/](./tokenization/)
+
+Demonstrates BSV tokenization capabilities using overlay services.
+
+**Features**:
+- Token creation and management
+- Overlay service integration
+- Distributed token ledger
+
+**Tech Stack**: React, TypeScript, Vite, @bsv/overlay, MySQL, MongoDB
+
 ## Quick Start with Docker
 
 ### Using Make (Easiest)
@@ -50,6 +76,17 @@ docker-compose up --build
 
 Then open:
 - **Data Integrity Demo**: http://localhost:8080
+- **Access Control Demo**: http://localhost:8081
+- **Tokenization Demo**: http://localhost:8082
+
+Backend services:
+- **Data Integrity API**: http://localhost:3001
+- **Access Control API**: http://localhost:3002
+- **Tokenization Overlay**: http://localhost:8083
+
+Databases:
+- **MySQL**: localhost:3306 (user: appuser, password: apppass, database: appdb)
+- **MongoDB**: localhost:27017 (user: root, password: example)
 
 To stop:
 ```bash

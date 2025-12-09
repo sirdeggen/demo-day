@@ -1,6 +1,6 @@
 import OverlayExpress from '@bsv/overlay-express'
-import TokenDemoTopicManager from './tokendemo/TokenDemoTopicManager'
-import TokenDemoLookupService from './tokendemo/TokenDemoLookupServiceFactory'
+import TokenDemoTopicManager from './token-demo/TokenDemoTopicManager'
+import TokenDemoLookupService from './token-demo/TokenDemoLookupServiceFactory'
 
 import { config } from 'dotenv'
 import packageJson from './package.json'

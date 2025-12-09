@@ -25,12 +25,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const walletClient = new WalletClient();
         setWallet(walletClient);
 
-        // Initialize MessageBoxClient with the tokenpayments basket
-        const mbClient = new MessageBoxClient(
-          walletClient,
-          messageBoxUrl,
-          'tokenpayments' // Unique messageBox identifier
-        );
+        // Initialize MessageBoxClient
+        const mbClient = new MessageBoxClient({
+          host: messageBoxUrl,
+          walletClient: walletClient,
+          enableLogging: false,
+          networkPreset: 'mainnet'
+        });
         setMessageBoxClient(mbClient);
 
         setIsInitialized(true);
