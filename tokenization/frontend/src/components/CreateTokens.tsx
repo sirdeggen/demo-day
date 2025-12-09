@@ -94,10 +94,9 @@ export function CreateTokens({ wallet }: CreateTokensProps) {
             tags: ['demotokens', 'mint', tokenId]
           }
         ],
-        labels: ['demotokens', 'mint'],
+        labels: ['demotokens2', 'mint'],
         options: {
-          randomizeOutputs: false,
-          acceptDelayedBroadcast: false
+          randomizeOutputs: false,  
         }
       })
 

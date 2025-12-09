@@ -7,16 +7,9 @@ interface TokenWalletProps {
   wallet: WalletClient
 }
 
-interface TokenBalance {
-  tokenId: string
-  amount: number
-  customFields?: Record<string, string>
-}
-
 export function TokenWallet({ wallet }: TokenWalletProps) {
-  const [balances, setBalances] = useState<TokenBalance[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const results = new Map<string, string>();
+  const [balances, setBalances] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     loadBalances()
@@ -24,14 +17,15 @@ export function TokenWallet({ wallet }: TokenWalletProps) {
 
   const loadBalances = async () => {
     setIsLoading(true)
-    results.clear();
     try {
       const simple = await wallet.listOutputs({
-        basket: 'demotokens',
+        basket: 'demotokens2',
         include: 'locking scripts'
       })
 
-      simple.outputs.map(c => {
+      const newBalances = new Map<string, string>()
+
+      simple.outputs.forEach(c => {
         const token = PushDrop.decode(LockingScript.fromHex(c.lockingScript as string))
         const r = new Utils.Reader(token.fields[1])
         const amount = String(r.readUInt64LEBn())
@@ -42,19 +36,13 @@ export function TokenWallet({ wallet }: TokenWalletProps) {
           customFields
         }
         console.log({ details })
-        const current = Number(results.get(details.tokenId)) || 0
-        results.set(details.tokenId, String(current + Number(details.amount)))
+        const current = Number(newBalances.get(details.tokenId)) || 0
+        newBalances.set(details.tokenId, String(current + Number(details.amount)))
       })
 
-      const storedBalances = localStorage.getItem('tokenBalances')
-      if (storedBalances) {
-        setBalances(JSON.parse(storedBalances))
-      } else {
-        setBalances([])
-      }
+      setBalances(newBalances)
     } catch (error) {
       console.error('Error loading balances:', error)
-      setBalances([])
     } finally {
       setIsLoading(false)
     }
@@ -95,7 +83,7 @@ export function TokenWallet({ wallet }: TokenWalletProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {balances.length === 0 ? (
+        {balances.size === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-2">
               <svg
@@ -119,39 +107,23 @@ export function TokenWallet({ wallet }: TokenWalletProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {
-            results.entries((entry, index) => {
-              return <>
+            {Array.from(balances.entries()).map(([tokenId, amount]) => (
               <div
-                key={index}
+                key={tokenId}
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {entry[0]}
+                      {tokenId}
                     </h3>
                     <p className="text-2xl font-bold text-purple-600 mt-1">
-                      {entry[1].amount.toLocaleString()}
+                      {Number(amount).toLocaleString()}
                     </p>
-                    {entry[1].customFields && Object.keys(entry[1].customFields).length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        <p className="text-sm font-medium text-gray-700">Properties:</p>
-                        <div className="space-y-1">
-                          {Object.entries(entry[1].customFields).map(([key, value]) => (
-                            <div key={key} className="text-sm text-gray-600 flex">
-                              <span className="font-medium min-w-[100px]">{key}:</span>
-                              <span>{value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
-              </>
-            })}
+            ))}
           </div>
         )}
       </CardContent>
