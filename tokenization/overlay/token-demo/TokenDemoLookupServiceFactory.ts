@@ -104,7 +104,7 @@ export class TokenDemoLookupService implements LookupService {
     if (to && isNaN(to.getTime())) throw new Error('Invalid endDate provided!')
 
     if (outpoint) 
-      return this.storage.findByOutpoint(outpoint, limit, skip, sortOrder)
+      return this.storage.findByOutpoint(outpoint)
 
     if (tokenId)
       return this.storage.findByTokenId(tokenId, limit, skip, sortOrder)
