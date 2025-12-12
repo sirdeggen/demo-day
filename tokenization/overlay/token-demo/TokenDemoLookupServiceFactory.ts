@@ -12,15 +12,7 @@ import {
 import { TokenDemoStorage } from './TokenDemoStorage.js'
 import { PushDrop, Utils } from '@bsv/sdk'
 import { Db } from 'mongodb'
-
-export interface TokenDemoQuery {
-  message?: string
-  limit?: number
-  skip?: number
-  startDate?: Date
-  endDate?: Date
-  sortOrder?: 'asc' | 'desc'
-}
+import { TokenDemoDetails, TokenDemoQuery } from './types.js'
 
 /**
  * Implements a lookup service for the Hello‑World protocol.
@@ -41,17 +33,21 @@ export class TokenDemoLookupService implements LookupService {
     try {
       if (payload.mode !== 'locking-script') throw new Error('Invalid mode')
       const { topic, lockingScript, txid, outputIndex } = payload
-      if (payload.topic !== 'tm_TokenDemo') return
+      if (topic !== 'tm_tokendemo') return
 
       // Decode the PushDrop token
-      const result = PushDrop.decode(lockingScript)
-      if (!result.fields || result.fields.length < 1) throw new Error('Invalid TokenDemo token: wrong field count')
-
-      const message = Utils.toUTF8(result.fields[0])
-      if (message.length < 2) throw new Error('Invalid TokenDemo token: message too short')
+      const token = PushDrop.decode(lockingScript)
+      const r = new Utils.Reader(token.fields[1])
+      const amount = String(r.readUInt64LEBn())
+      const customFields = JSON.parse(Utils.toUTF8(token.fields[2]))
+      const details: TokenDemoDetails = {
+        tokenId: Utils.toUTF8(token.fields[0]),
+        amount,
+        customFields
+      }
 
       // Persist for future lookup
-      await this.storage.storeRecord(txid, outputIndex, message)
+      await this.storage.storeRecord(txid, outputIndex, details)
     } catch (err) {
       const { txid, outputIndex } = payload as { txid: string; outputIndex: number }
       console.error(`TokenDemoLookupService: failed to index ${txid}.${outputIndex}`, err)
@@ -65,7 +61,7 @@ export class TokenDemoLookupService implements LookupService {
   async outputSpent(payload: OutputSpent): Promise<void> {
     if (payload.mode !== 'none') throw new Error('Invalid mode')
     const { topic, txid, outputIndex } = payload
-    if (topic === 'tm_TokenDemo') {
+    if (topic === 'tm_tokendemo') {
       await this.storage.deleteRecord(txid, outputIndex)
     }
   }
@@ -86,10 +82,11 @@ export class TokenDemoLookupService implements LookupService {
    */
   async lookup(question: LookupQuestion): Promise<LookupFormula> {
     if (!question) throw new Error('A valid query must be provided!')
-    if (question.service !== 'ls_TokenDemo') throw new Error('Lookup service not supported!')
+    if (question.service !== 'ls_tokendemo') throw new Error('Lookup service not supported!')
 
     const {
-      message,
+      tokenId,
+      outpoint,
       limit = 50,
       skip = 0,
       startDate,
@@ -106,11 +103,13 @@ export class TokenDemoLookupService implements LookupService {
     if (from && isNaN(from.getTime())) throw new Error('Invalid startDate provided!')
     if (to && isNaN(to.getTime())) throw new Error('Invalid endDate provided!')
 
-    if (message) {
-      return this.storage.findByMessage(message, limit, skip, sortOrder)
-    }
+    if (outpoint) 
+      return this.storage.findByOutpoint(outpoint, limit, skip, sortOrder)
 
-    return this.storage.findAll(limit, skip, from, to, sortOrder)
+    if (tokenId)
+      return this.storage.findByTokenId(tokenId, limit, skip, sortOrder)
+
+    return this.storage.findAll(limit, skip, sortOrder)
   }
 
   /** Overlay docs. */

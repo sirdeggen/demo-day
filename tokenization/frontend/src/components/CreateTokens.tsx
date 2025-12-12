@@ -60,7 +60,7 @@ export function CreateTokens({ wallet }: CreateTokensProps) {
       const fields: number[][] = []
 
       // Add tokenID field
-      const tokenIdBytes = Utils.toArray(tokenId, 'utf8')
+      const tokenIdBytes = Utils.toArray('___mint___' + tokenId, 'utf8')
       fields.push(tokenIdBytes)
 
       // Add amount field as Uint64LE (8 bytes, little-endian)

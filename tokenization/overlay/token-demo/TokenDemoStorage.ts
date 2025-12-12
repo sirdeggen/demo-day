@@ -1,5 +1,5 @@
 import { Collection, Db } from 'mongodb'
-import { TokenDemoRecord, UTXOReference } from './types.js'
+import { TokenDemoRecord, TokenDemoDetails, UTXOReference } from './types.js'
 
 // Implements a Lookup StorageEngine for TokenDemo
 export class TokenDemoStorage {
@@ -11,14 +11,15 @@ export class TokenDemoStorage {
    */
   constructor(private readonly db: Db) {
     this.records = db.collection<TokenDemoRecord>('TokenDemoRecords')
-    this.createSearchableIndex() // Initialize the searchable index
+    this.createIndices() // Initialize the searchable index
   }
 
   /* Ensures a text index exists for the `message` field, enabling efficient searches.
    * The index is named `MessageTextIndex`.
    */
-  private async createSearchableIndex(): Promise<void> {
-    await this.records.createIndex({ message: 'text' }, { name: 'MessageTextIndex' })
+  private async createIndices(): Promise<void> {
+    await this.records.createIndex({ txid: 1, outputIndex: 1 }, { name: 'OutpointIndex' })
+    await this.records.createIndex({ tokenId: 'hashed' }, { name: 'TokenIdTextIndex' })
   }
 
   /**
@@ -28,11 +29,11 @@ export class TokenDemoStorage {
    * @param {string} message - The message to be stored
    * @returns {Promise<void>} - Resolves when the record has been successfully stored
    */
-  async storeRecord(txid: string, outputIndex: number, message: string): Promise<void> {
+  async storeRecord(txid: string, outputIndex: number, details: TokenDemoDetails): Promise<void> {
     await this.records.insertOne({
       txid,
       outputIndex,
-      message,
+      ...details,
       createdAt: new Date()
     })
   }
@@ -48,6 +49,32 @@ export class TokenDemoStorage {
   }
 
   /**
+   * Finds a TokenDemo record that matches the given transaction ID and output index.
+   * 
+   * @param outpoint 
+   * @param limit 
+   * @param skip 
+   * @param sortOrder 
+   * @returns 
+   */
+  async findByOutpoint(
+    outpoint: string
+  ): Promise<UTXOReference[]> {
+    const [txid, outputIndex] = outpoint.split('.')
+    return this.records.find(
+        { txid, outputIndex: Number(outputIndex) }, 
+        { projection: { txid: 1, outputIndex: 1 } }
+      )
+      .toArray()
+      .then(results =>
+        results.map(r => ({
+          txid: r.txid,
+          outputIndex: r.outputIndex
+        }))
+      )
+  }
+
+  /**
    * Finds TokenDemo records containing the specified message (case-insensitive).
    * Uses the collection’s full-text index for efficient matching.
    *
@@ -56,20 +83,20 @@ export class TokenDemoStorage {
    * @param skip          Number of results to skip for pagination (default = 0)
    * @param sortOrder     'asc' | 'desc' – sort by createdAt (default = 'desc')
    */
-  async findByMessage(
-    message: string,
+  async findByTokenId(
+    tokenId: string,
     limit: number = 50,
     skip: number = 0,
     sortOrder: 'asc' | 'desc' = 'desc'
   ): Promise<UTXOReference[]> {
-    if (!message) return []
+    if (!tokenId) return []
 
     // Map text value → numeric MongoDB sort direction
     const direction = sortOrder === 'asc' ? 1 : -1
 
     return this.records
       .find(
-        { $text: { $search: message } },
+        { tokenId },
         { projection: { txid: 1, outputIndex: 1, createdAt: 1 } }
       )
       .sort({ createdAt: direction })
@@ -86,35 +113,31 @@ export class TokenDemoStorage {
 
   /**
    * Retrieves all TokenDemo records, optionally filtered by date range and sorted by creation time.
-   * @param {number} [limit=50] - The maximum number of results to return
-   * @param {number} [skip=0] - The number of results to skip (for pagination)
-   * @param {Date} [startDate] - The earliest creation date to include (inclusive)
-   * @param {Date} [endDate] - The latest creation date to include (inclusive)
-   * @param {'asc' | 'desc'} [sortOrder='desc'] - The sort order for the results (`asc` for oldest first, `desc` for newest first)
    * @returns {Promise<UTXOReference[]>} - Resolves with an array of UTXO references
    */
   async findAll(
-    limit = 50,
-    skip = 0,
-    startDate?: Date,
-    endDate?: Date,
+    limit: number = 50,
+    skip: number = 0,
     sortOrder: 'asc' | 'desc' = 'desc'
   ): Promise<UTXOReference[]> {
-    const query: any = {}
-    if (startDate || endDate) {
-      query.createdAt = {}
-      if (startDate) query.createdAt.$gte = startDate
-      if (endDate) query.createdAt.$lte = endDate
-    }
+    // Map text value → numeric MongoDB sort direction
+    const direction = sortOrder === 'asc' ? 1 : -1
 
-    const sortDirection = sortOrder === 'asc' ? 1 : -1
-
-    return await this.records.find(query)
-      .sort({ createdAt: sortDirection })
+    return this.records
+      .find(
+        {},
+        { projection: { txid: 1, outputIndex: 1, createdAt: 1 } }
+      )
+      .sort({ createdAt: direction })
       .skip(skip)
       .limit(limit)
-      .project<UTXOReference>({ txid: 1, outputIndex: 1 })
       .toArray()
+      .then(results =>
+        results.map(r => ({
+          txid: r.txid,
+          outputIndex: r.outputIndex
+        }))
+      )
   }
 
   // Additional custom query functions can be added here. ---------------------------------------------
